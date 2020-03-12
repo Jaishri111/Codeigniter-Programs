@@ -1,0 +1,442 @@
+Simple Dropdown programs in codeigniter
+
+<?php
+class Blog_controller extends CI_Controller 
+{
+	
+	public function __construct()
+	{
+		parent::__construct();
+		$this->load->database();
+		$this->load->helper('url','form');
+		$this->load->model('Blog_Model');
+	}
+        public function savedata()
+	{
+		$this->load->helper('form'); 
+         $data['groups']=$this->Blog_Model->getAllGroups();
+          $data['auth']=$this->Blog_Model->getAllauthor();
+          $data['tags']=$this->Blog_Model->getAlltag();
+		$this->load->view('add_view',$data);
+		if($this->input->post('save'))
+		{
+			$n=$this->input->post('blog_title');
+			$d=$this->input->post('description');
+			$c=$this->input->post('category');
+			$a=$this->input->post('author');
+			$t=$this->input->post('tag');
+			$this->Blog_Model->saverecords($n,$d,$c,$a,$t);		
+			redirect("Blog_controller/dispdata");  
+		}
+	}
+	public function dispdata()
+	{
+		$result['data']=$this->Blog_Model->displayrecords();
+		$this->load->view('view_page',$result);
+	}
+	
+	public function deletedata($id)
+	{
+		$this->Blog_Model->deleterecords($id);
+		redirect("Blog_controller/dispdata");
+	}
+	
+	public function updatedata($id)
+	{
+		
+		$result['data']=$this->Blog_Model->displayrecordsById($id);
+		//print_r($result);die();
+		$result['groups']=$this->Blog_Model->getAllGroups();
+          $result['auth']=$this->Blog_Model->getAllauthor();
+          $result['tags']=$this->Blog_Model->getAlltag();
+		$this->load->view('update_blog',$result);
+
+	
+		 if($this->input->post('update'))
+		 {
+		 	$blog_title=$this->input->post('blog_title');
+		 	$description=$this->input->post('description');
+		 	$category=$this->input->post('category');
+		 	$author=$this->input->post('author');
+		 	$tag=$this->input->post('tag');
+		 	$this->Blog_Model->updaterecords($blog_title,$description,$category,$author,$tag,$id);
+			redirect("Blog_controller/dispdata");
+		 }
+	}
+	
+	public function update_status()
+	{
+		$id=$this->input->post('id');
+		$status=$this->input->post('status');
+		$this->Blog_Model->user_records_status($id,$status);
+	}
+		public function fetch_author()
+       {
+            if($this->input->post('author_id'))
+              {
+               echo $this->Blog_Model->fetch_author($this->input->post('author_id'));
+              }
+        }
+
+       public function fetch_tag()
+      {
+          if($this->input->post('tag_id'))
+          {
+            echo $this->Blog_Model->fetch_tag($this->input->post('tag_id'));
+          }
+     }
+
+     public function fetch_category()
+     {
+
+     	if($this->input->post('category_id'))
+     	{
+     		echo $this->Blog_Model->fetch_category($this->input->post('category_id'));
+     	}
+     }
+  }		
+?>
+
+Models:-
+
+<?php
+class Blog_Model extends CI_Model
+{
+	function saverecords($n,$d,$c,$a,$t)
+	{
+		$data['blog_title'] = $_POST['blog_title'];
+		$data['description'] = $_POST['description'];
+		$data['category']=$_POST['category'];
+		$data['author']=$_POST['author'];
+		$data['tag']=$_POST['tag'];
+		$this->db->insert('myblog', $data);
+	}
+	function getAllGroups()
+    {
+        $query = $this->db->query('SELECT * FROM category');
+        return $query->result_array();
+    }
+
+    function getAllauthor()
+    {
+        $query = $this->db->query('SELECT * FROM authortable');
+        return $query->result_array();
+    }
+
+    function getAlltag()
+    {
+        $query = $this->db->query('SELECT * FROM blogtag');
+        return $query->result_array();
+    }
+	
+	function displayrecords()
+	{
+		$query = $this->db->get('myblog');
+		return $query->result();
+	}
+	
+	function deleterecords($id)
+	{
+		$this->db->query("delete from myblog where id='".$id."'");
+	 }
+	
+	function displayrecordsById($id)
+	{
+		$query = $this->db->get_where('myblog', array('id' => $id));
+		return $query->result();
+	
+	}
+	
+	function updaterecords($blog_title,$description,$category,$author,$tag,$id)
+	{
+	$query=$this->db->query("update myblog SET blog_title='$blog_title',description='$description',
+	category='$category',author='$author',tag='$tag' where id='".$id."'");
+	 }	
+
+	function user_records_status($id,$status)
+	{
+		$data = array(
+			'status' => $status
+		);
+		$this->db->where('id',$id);
+		$this->db->update('myblog',$data);
+	}
+	 public function fetch_author(){
+      $this->db->select("*");
+      $this->db->from("authortable");
+      $this->db->where("author_id",$author_id);
+      $resAuthor  = $this->db->get();
+      if($resAuthor->num_rows() > 0){
+        return $resAuthor->result();
+      }
+    }
+    public function fetch_category(){
+      $this->db->select("*");
+      $this->db->from("category");
+     $this->db->where("category_id",$category_id);
+      $resCategory  = $this->db->get();
+      if($resCategory->num_rows() > 0){
+        return $resCategory->result();
+      }
+    }
+     public function fetch_tag(){
+      $this->db->select("*");
+      $this->db->from("blogtag");
+      $this->db->where("tag_id",$tag_id);
+      $resTag  = $this->db->get();
+      if($resTag->num_rows() > 0){
+        return $resTag->result();
+      }
+    }	
+}
+?>
+
+Views:- view_page
+
+<html>
+<head>  
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js">
+  </script>
+  <title>Display Records</title>
+</head>
+<body bgcolor="lightgrey">
+  <center><h1>Display Information of Blog</h1></center> 
+  <table align="center" width="600" border="10" cellspacing="5" cellpadding="5" bgcolor="#CEE3F6">
+  <tr>
+    <th colspan="5"  >
+       <!-- <?php echo "<td><a id='add' href='savedata/$row->id'>Add Blog</a></td>";
+       ?>
+      -->
+      <a href="<?php echo base_url('Blog_controller/savedata')?>">Add info</a>
+    </tr>
+  <tr>
+    <th>No</th>
+    <th>Blog Title</th>
+    <th>Created Date</th>
+    <th>Status</th>
+    <th>Edit</th>
+  </tr>
+  <?php
+  $i=1;
+    foreach($data as $row)  
+  {
+      echo "<tr>";
+      echo "<td>".$i."</td>";
+      echo "<td>".$row->blog_title."</td>";
+      echo "<td>".$row->created_at."</td>";
+      echo "<td><a href='#' class='status_checks' data-status =".$row->status." 
+      data-id=".$row->id." >";
+      if($row->status =='1'){ echo 'Active';}else{echo 'Deactive';}
+      echo "</a></td>";
+      echo "<td><a id='update' href='updatedata/$row->id'>Update</a></td>";
+      echo "</tr>";
+       $i++;
+      }   ?>
+</table>
+</body>
+<script type="text/javascript">
+  $(document).on('click','.status_checks',function()
+ { 
+    var status  =  $(this).attr("data-status");
+    var id      =  $(this).attr("data-id");
+    var $str    =  'Deactivate';
+    status      =  (status == 1 ? 0 : 1);
+    var msg = (status=='0')? 'Deactivate' : 'Active'; 
+
+if(confirm("Are you sure to "+ msg))
+{ 
+    url = "<?php echo base_url('Blog_controller/').'update_status'; ?>"; 
+        $.ajax({
+          type:"POST",
+          url: url, 
+          data: {"id":id,"status":status}, 
+          success: function(data) { 
+          location.reload();
+    } 
+  });
+ }  
+ });
+</script> 
+</html>
+
+Views:-add_view.php
+
+<!DOCTYPE html>
+<html>
+<head>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js">
+	</script>
+	
+</head>
+<body bgcolor="lightgrey">
+	<center><h1>Insert Infomartion</h1></center>
+	<form method="POST" id="addform" action="">
+		<table align="center" cellpadding="5"cellspacing="5" border="10">
+			<tr>
+				<td><font size="5"> Blog Title</font></td>
+				<td><input type="text" name="blog_title"></td>
+			</tr>
+			<tr>
+				<td><font size="5"> Blog Description</font></td>
+				<td><input type="text" name="description"></td>
+			</tr>
+			<tr>
+				
+					<td><font size="5">category</font></td>
+				<td><select class="form-control" name="category">
+		    <option value="">All</option>
+		    <?php
+		    foreach($groups as $category)
+		    {
+		        echo '<option value="'.$category['category_id'].'">'.$category['category_name'].'</option>';
+		    }
+		    ?>  
+		</select> <br/>
+				</td>
+			</tr>
+			<tr>
+				
+					<td><font size="5">authortable</font></td>
+				<td><select class="form-control" name="author">
+		    <option value="">All</option>
+		    <?php
+		    foreach($auth as $authortable)
+		    {
+		        echo '<option value="'.$authortable['author_id'].'">'.$authortable['author_name'].'</option>';
+		    }
+		    ?>  
+		</select> <br/>
+				</td>
+			</tr>
+			<tr>
+				
+					<td><font size="5">blogtag</font></td>
+			<td><select class="form-control" name="tag">
+		    <option value="">All</option>
+		    <?php
+		    foreach($tags as $blogtag)
+		    {
+		        echo '<option value="'.$blogtag['tag_id'].'">'.$blogtag['tag_name'].'</option>';
+		    }
+		    ?>  
+		</select> <br/>
+				</td>
+			</tr>
+			<tr>
+				<td align="center" colspan="2">
+					<input type="submit" name="save"id="save" value="Add">
+				</td>
+			</tr>
+		</table>
+		
+		</br>
+		</form>
+	</body>
+	<script>
+		$(document).ready(function(){
+		
+		$("#add").click(function() {
+			
+			$.ajax({
+		            url:"<?php echo base_url().'Blog_controller/add_blog';?>",
+		            data: $("#addform").serialize(),
+		            type: "POST",
+		            success: function(response){
+		              
+		                $('#addform')[0].reset();
+		                alert('Tag Inserted Successfully...');
+		               },
+		           error: function()
+		           {
+		            //alert("error");
+		       		}
+		       		});
+          });
+		});
+</script>
+</html>
+
+Views:-update_blog.php
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Codeigniter</title>
+</head>
+<body>
+ <?php
+ $i=1;
+  foreach($data as $row)
+  {
+  ?>
+  <h1 align="center"><u>Update Blog</u></h1>
+<form method="post">
+  <table align="center"width="600" border="10" cellspacing="2" cellpadding="2" bgcolor="lightgrey">
+    <tr>
+  <td  align="center"colspan="2" width="230" bgcolor="lightblue"><font size="5"> <b>ID:</b></font>
+   <?php 
+   echo $row->id;
+    ?>  
+    </td>
+   </tr>
+</td>
+</tr>
+<tr>
+  <td width="230" align="center"><b><font size="5">Blog Title</font></b></td>
+  <td width="329"><input type="text" name="blog_title" 
+    value="<?php echo $row->blog_title; ?>"/></td>
+</tr>
+<tr><td width="230" align="center"><b><font size="5"> Description</font></b></td>
+  <td width="329"><textarea id="textarea"name="description" rows="4" cols="50"></textarea>
+</td></tr>
+<tr>
+        
+          <td><font size="5">category</font></td>
+        <td><select class="form-control" name="category">
+        <option value="">All</option>
+        <?php
+        foreach($groups as $category)
+        {
+            echo '<option value="'.$category['category_id'].'">'.$category['category_name'].'</option>';
+        }
+        ?>  
+    </select> <br/>
+        </td>
+      </tr>
+      <tr>
+        
+          <td><font size="5">authortable</font></td>
+        <td><select class="form-control" name="author">
+        <option value="">All</option>
+        <?php
+        foreach($auth as $authortable)
+        {
+            echo '<option value="'.$authortable['author_id'].'">'.$authortable['author_name'].'</option>';
+        }
+        ?>  
+    </select> <br/>
+        </td>
+      </tr>
+      <tr>
+        
+          <td><font size="5">blogtag</font></td>
+      <td><select class="form-control" name="tag">
+        <option value="">All</option>
+        <?php
+        foreach($tags as $blogtag)
+        {
+            echo '<option value="'.$blogtag['tag_id'].'">'.$blogtag['tag_name'].'</option>';
+        }
+        ?>  
+    </select> <br/>
+        </td>
+      </tr>
+<tr>
+  <td colspan="2" align="center">
+<input type="submit" name="update" value="Update Records"/></td>
+</tr>
+</table>
+</form>
+  <?php } ?>
+</body>
+</html>
